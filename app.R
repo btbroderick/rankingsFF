@@ -1,28 +1,40 @@
 library(shiny)
-library(htmlwidgets)
-
-sortableList <- function(inputId, value) {
-  tagList(
-    singleton(tags$head(tags$script(src="http://rubaxa.github.io/Sortable/Sortable.js"))),
-    singleton(tags$head(tags$script(src = "sortableList.js"))),
-    tags$div(id = inputId,class = "sortableList list-group",
-             tagList(sapply(value,function(x){
-               tags$div(class="list-group-item","data-id"=x,x)
-             },simplify = F)))
-  )
-}
+library(shinythemes)
+library(tidyverse)
+library(DT)
+players <- read_csv(here::here("FantasyPros_2018_Draft_Overall_Rankings.csv"))
 
 ui <- fluidPage(
-  sortableList('sortable_list',c(2,3,4)),
-  sortableList('sortable_list2',c(5,6,7)),
-  textOutput('test'),
-  textOutput('test2')
+  theme = shinytheme("spacelab"),
+  navbarPage(title = "Fantasy Football Rankings",
+             tabPanel("Overall Rankings",
+                      sidebarPanel(
+                        width = 2,
+                        numericInput("position", label = "New Rank", value = NA, min = 1, max = 300),
+                        actionButton("move", label = "Move Player")
+                        ),
+                      mainPanel(dataTableOutput("overall_table"))
+             )
+  )
 )
 
-server <- function(input, output, session) 
-{
-  output$test <- renderText({input$sortable_list})
-  output$test2 <- renderText({input$sortable_list2})
+server <- function(input, output, session) {
+  
+  new_row <- reactive({input$tableId_rows_selected})
+  
+  overall <- reactive({
+    players
+    })
+  
+  output$overall_table <- renderDataTable({
+    overall()
+    }, 
+    selection = "single")
+  
+  observeEvent(input$move, {
+    players[[new_row]]
+  })
+  
 }
 
-shinyApp(ui=ui, server=server)
+shinyApp(ui, server)
